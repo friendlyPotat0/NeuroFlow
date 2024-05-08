@@ -130,6 +130,8 @@ extern crate serde_derive;
 
 use std::fmt;
 use std::default::Default;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
 
 use data::Extractable;
 
@@ -251,6 +253,8 @@ pub struct FeedForward {
     learn_rate: f64,
     momentum: f64,
     error: f64,
+    recent_average_error: f64,
+    logfile: String,
 
     act_type: activators::Type,
 
@@ -318,7 +322,7 @@ impl FeedForward {
     /// ```
     ///
     pub fn new(architecture: &[i32]) -> FeedForward {
-        let mut nn = FeedForward {learn_rate: 0.1, momentum: 0.1, error: 0.0,
+        let mut nn = FeedForward {learn_rate: 0.1, momentum: 0.1, error: 0.0, recent_average_error: 0.0, logfile: "".to_string(),
             layers: Vec::new(),
             act: ActivationContainer{func: activators::tanh, der: activators::der_tanh},
             act_type: activators::Type::Tanh};
@@ -328,6 +332,10 @@ impl FeedForward {
         }
 
         return nn;
+    }
+    
+    pub fn set_logfile(&mut self, logfile: &String) {
+        self.logfile = logfile.to_string();
     }
 
     fn forward(&mut self, x: &Vec<f64>){
@@ -378,6 +386,14 @@ impl FeedForward {
                     self.layers[j].delta[i] = (d[i] - self.layers[j].y[i])* (self.act.der)(self.layers[j].v[i]);
                     self.error += 0.5 * (d[i] - self.layers[j].y[i]).powi(2);
                 }
+                let filename = self.logfile.clone();
+                let mut file = OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(filename).unwrap();
+                self.recent_average_error = (self.recent_average_error * 100.0 + self.error) / (100.0 + 1.0);
+                writeln!(file, "{}", self.recent_average_error).unwrap();
+                println!("{}", self.recent_average_error);
             } else {
                 for i in 0..self.layers[j].delta.len(){
                     sum = 0.0;
@@ -456,8 +472,8 @@ impl FeedForward {
     /// d.push(&[1.2], &[1.3, -0.2]);
     /// nn.train(&d, 30_000);
     /// ```
-    pub fn train<T>(&mut self, data: &T, iterations: i64) where T: Extractable{
-        for _ in 0..iterations{
+    pub fn train<T>(&mut self, data: &T) where T: Extractable{
+        for _ in 0..data.len(){
             let (x, y) = data.rand();
             self.fit(&x, &y);
         }
