@@ -10,6 +10,7 @@ pub enum Type {
     Sigmoid,
     Tanh,
     Relu,
+    ELU,
     Custom
 }
 
@@ -35,5 +36,20 @@ pub fn der_relu(x: f64) -> f64{
         0.0
     } else {
         1.0
+    }
+}
+pub fn elu(x: f64) -> f64 {
+    if x > 0.0 {
+        x
+    } else {
+        1.0 * (x.exp() - 1.0)
+    }
+}
+
+pub fn der_elu(x: f64) -> f64 {
+    if x > 0.0 {
+        1.0
+    } else {
+        elu(x) + 1.0
     }
 }

@@ -123,7 +123,7 @@ impl DataSet {
         let mut data_set = DataSet::new();
         let mut is_x: bool;
 
-        for row in file.records(){
+        for (i, row) in file.records().enumerate(){
             let records = row?;
             let mut x: Vec<f64> = Vec::new();
             let mut y: Vec<f64> = Vec::new();
@@ -143,7 +143,10 @@ impl DataSet {
                 }
             }
             data_set.push(&x, &y);
+            print!("\rLoaded #{} row!", i);
+            std::io::Write::flush(&mut std::io::stdout()).unwrap();
         }
+        println!("");
 
         Ok(data_set)
     }
